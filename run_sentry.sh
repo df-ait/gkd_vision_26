@@ -1,0 +1,1 @@
+./build/gkdsentry configs/gkdsentry.yaml

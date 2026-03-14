@@ -3,6 +3,7 @@
 #include <fmt/chrono.h>
 
 #include <filesystem>
+#include <stdexcept>
 #include <string>
 
 #include "math_tools.hpp"
@@ -10,7 +11,11 @@
 
 namespace tools
 {
-Recorder::Recorder(double fps) : init_(false), fps_(fps), queue_(1), stop_thread_(false)
+Recorder::Recorder(double fps)
+: init_(false),
+  stop_thread_(false),
+  fps_(fps),
+  queue_(16)
 {
   start_time_ = std::chrono::steady_clock::now();
   last_time_ = start_time_;
@@ -21,6 +26,8 @@ Recorder::Recorder(double fps) : init_(false), fps_(fps), queue_(1), stop_thread
   video_path_ = fmt::format("{}/{}.avi", folder_path, file_name);
 
   std::filesystem::create_directory(folder_path);
+  tools::logger()->info("[Recorder] Video will be saved to {}", video_path_);
+  tools::logger()->info("[Recorder] IMU log will be saved to {}", text_path_);
 }
 
 Recorder::~Recorder()
@@ -37,9 +44,10 @@ Recorder::~Recorder()
 
 void Recorder::save_to_file()
 {
-  while (!stop_thread_) {
+  while (true) {
     FrameData frame;
     queue_.pop(frame);  // 从队列中取出帧数据
+    if (stop_thread_ && frame.img.empty()) break;
     if (frame.img.empty()) {
       tools::logger()->debug("Recorder received empty img. Skip this frame.");
       continue;
@@ -66,14 +74,20 @@ void Recorder::record(
   if (since_last < 1.0 / fps_) return;
 
   last_time_ = timestamp;
-  queue_.push({img, q, timestamp});
+  queue_.push({img.clone(), q.normalized(), timestamp});
 }
 
 void Recorder::init(const cv::Mat & img)
 {
   text_writer_.open(text_path_);
+  if (!text_writer_.is_open()) {
+    throw std::runtime_error("Failed to open recorder text file: " + text_path_);
+  }
   auto fourcc = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');
   video_writer_ = cv::VideoWriter(video_path_, fourcc, fps_, img.size());
+  if (!video_writer_.isOpened()) {
+    throw std::runtime_error("Failed to open recorder video file: " + video_path_);
+  }
   saving_thread_ = std::thread(&Recorder::save_to_file, this);  // 启动保存线程
   init_ = true;
 }

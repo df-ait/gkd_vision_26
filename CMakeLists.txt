@@ -40,12 +40,14 @@ target_link_libraries(gkdinfantry_MPC ${OpenCV_LIBS} fmt::fmt yaml-cpp auto_aim 
 target_link_libraries(gkdinfantry_debug_MPC ${OpenCV_LIBS} fmt::fmt yaml-cpp auto_aim tools io)
 ##################calibration################
 add_executable(capture calibration/capture.cpp)
+add_executable(record calibration/record.cpp)
 add_executable(calibrate_camera calibration/calibrate_camera.cpp)
 add_executable(calibrate_handeye calibration/calibrate_handeye.cpp)
 add_executable(calibrate_robotworld_handeye calibration/calibrate_robotworld_handeye.cpp)
 add_executable(split_video calibration/split_video.cpp)
 
 target_link_libraries(capture ${OpenCV_LIBS} fmt::fmt yaml-cpp tools io)
+target_link_libraries(record ${OpenCV_LIBS} fmt::fmt tools io)
 target_link_libraries(calibrate_camera ${OpenCV_LIBS} fmt::fmt yaml-cpp tools io)
 target_link_libraries(calibrate_handeye ${OpenCV_LIBS} fmt::fmt yaml-cpp tools io)
 target_link_libraries(calibrate_robotworld_handeye ${OpenCV_LIBS} fmt::fmt yaml-cpp tools)

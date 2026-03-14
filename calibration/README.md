@@ -1,7 +1,8 @@
 # Calibration
 
-这个目录下目前常用的标定程序有 3 个：
+这个目录下目前常用的程序有 4 个：
 
+- `record`：连续录制视频和对应四元数
 - `capture`：采集棋盘图片和对应四元数
 - `calibrate_camera`：标定相机内参
 - `calibrate_handeye`：标定手眼外参
@@ -14,7 +15,7 @@
 
 ## 1. 先准备配置
 
-标定配置文件默认是 [configs/calibration.yaml](/Users/macbookpro/Documents/code/sp_vision_25/configs/calibration.yaml)。
+标定配置文件默认是 `configs/calibration.yaml`。
 
 目前需要关心的字段：
 
@@ -49,13 +50,56 @@ cmake --build build -j
 
 生成的标定程序是：
 
+- `build/record`
 - `build/capture`
 - `build/calibrate_camera`
 - `build/calibrate_handeye`
 
-## 3. 标定内参
+## 3. 连续录制视频
 
-### 3.1 采集图片
+如果你想按当前 GKD 链路连续录像，而不是一张一张按 `s` 保存，可以直接用：
+
+```bash
+./build/record configs/gkdinfantry.yaml --display
+```
+
+常用参数：
+
+- `-f` / `--fps`：录制帧率，默认 `30`
+- `-d` / `--display`：显示预览窗口
+- `-s` / `--scale`：预览缩放比例，默认 `0.5`
+
+例如：
+
+```bash
+./build/record configs/gkdhero.yaml -f=60 --display -s=0.5
+```
+
+说明：
+
+- 这个程序走的是当前方法：`Camera + GKDControl + Recorder`
+- 图像来自海康相机
+- 姿态来自 `GKDControl`
+- 退出方式：
+  - 终端按 `Ctrl+C`
+  - 如果开了预览，也可以在窗口里按 `q`
+
+输出文件会自动写到仓库根目录下的 `records/`：
+
+- `records/<时间戳>.avi`
+- `records/<时间戳>.txt`
+
+文本文件每一行格式是：
+
+```text
+相对时间(秒) w x y z
+```
+
+这个格式和 `split_video` 兼容，可以直接用来截取录像片段。
+
+## 4. 标定内参
+
+### 4.1 采集图片
 
 如果你直接用这套代码采图：
 
@@ -82,7 +126,7 @@ cmake --build build -j
 - 需要有远近变化和较大倾斜角
 - 不要只拍几张几乎一样的图
 
-### 3.2 运行内参标定
+### 4.2 运行内参标定
 
 ```bash
 ./build/calibrate_camera assets/calib_intrinsic -c configs/calibration.yaml
@@ -94,11 +138,11 @@ cmake --build build -j
 - `distort_coeffs`
 - 重投影误差
 
-把输出的 `camera_matrix` 和 `distort_coeffs` 填回 [configs/calibration.yaml](/Users/macbookpro/Documents/code/sp_vision_25/configs/calibration.yaml)。
+把输出的 `camera_matrix` 和 `distort_coeffs` 填回 `configs/calibration.yaml`。
 
-## 4. 标定手眼外参
+## 5. 标定手眼外参
 
-### 4.1 采集图片和姿态
+### 5.1 采集图片和姿态
 
 ```bash
 ./build/capture configs/calibration.yaml -o assets/calib_handeye
@@ -120,7 +164,7 @@ w x y z
 - 文件编号必须连续，不能缺号
 - `calibrate_handeye` 会从 `1.jpg` 一直读到遇到第一张缺失图片为止
 
-### 4.2 采集姿态建议
+### 5.2 采集姿态建议
 
 手眼标定时建议：
 
@@ -132,9 +176,9 @@ w x y z
 
 如果 `R_gimbal2imubody` 本身填错，手眼结果也会跟着错。
 
-### 4.3 运行手眼标定
+### 5.3 运行手眼标定
 
-先确保 [configs/calibration.yaml](/Users/macbookpro/Documents/code/sp_vision_25/configs/calibration.yaml) 里已经有正确的：
+先确保 `configs/calibration.yaml` 里已经有正确的：
 
 - `camera_matrix`
 - `distort_coeffs`
@@ -157,10 +201,10 @@ w x y z
 
 把这两个填回实际运行配置，例如：
 
-- [configs/gkdinfantry.yaml](/Users/macbookpro/Documents/code/sp_vision_25/configs/gkdinfantry.yaml)
-- [configs/gkdhero.yaml](/Users/macbookpro/Documents/code/sp_vision_25/configs/gkdhero.yaml)
+- `configs/gkdinfantry.yaml`
+- `configs/gkdhero.yaml`
 
-## 5. 常见问题
+## 6. 常见问题
 
 ### 棋盘尺寸怎么填
 
@@ -179,7 +223,7 @@ pattern_rows: 8
 
 ### 为什么内参标定能用 `capture` 采的图
 
-因为 [calibrate_camera.cpp](/Users/macbookpro/Documents/code/sp_vision_25/calibration/calibrate_camera.cpp) 只读取 `jpg`，不会读取四元数文件。
+因为 `calibration/calibrate_camera.cpp` 只读取 `jpg`，不会读取四元数文件。
 
 ### 为什么手眼标定失败
 
@@ -196,7 +240,7 @@ pattern_rows: 8
 
 标定程序目前都是把结果打印到终端，不会自动回写 YAML。你需要把输出手动拷回配置文件。
 
-## 6. 其他程序
+## 7. 其他程序
 
 - `calibrate_robotworld_handeye`：更复杂的机器人世界手眼标定，普通相机到云台外参标定一般不用它
 - `split_video`：把已有录像按区间裁出来，做数据整理时可选

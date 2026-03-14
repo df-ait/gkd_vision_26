@@ -104,8 +104,7 @@ void GKDControl::initialize_udp_reception()
       // 无奈之举
       current.yaw = -current.yaw;
       current.pitch = current.pitch;
-
-      Eigen::Vector3d euler(current.yaw, current.pitch, 0.0);
+      Eigen::Vector3d euler(current.yaw, current.pitch, current.roll);
       Eigen::Quaterniond q(tools::rotation_matrix(euler));
 
       auto_aim::Color enemy_color;
@@ -116,7 +115,7 @@ void GKDControl::initialize_udp_reception()
       else {
         enemy_color = auto_aim::red;
       }
-
+      std::cout << current.red << std::endl;
       queue_.push({q.normalized(), std::chrono::steady_clock::now()});
 
       color_queue.push({enemy_color, std::chrono::steady_clock::now()});
